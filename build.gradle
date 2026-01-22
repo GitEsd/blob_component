@@ -1,31 +1,43 @@
-plugins {
-    id 'com.elo.flows' version '1.2.20' // https://plugins.gradle.org/plugin/com.elo.flows
+buildscript {
+    repositories {
+        if (buildType == "local") {
+            flatDir { dirs "${flatDirRepoPath}" }
+        }
+        else {
+            maven {
+                url 'https://nexus.elo.dev/repository/elo-public/'
+            }
+        }
+        gradlePluginPortal()
+        jcenter()
+    }
+    dependencies {
+        if (buildType == "local") {
+            classpath fileTree(dir: "${flatDirRepoPath}", include: '*.jar')
+        } else {
+            classpath "com.elo.gradle:flows-gradle-plugin:1.2.5"
+        }
+    }
 }
 
-// Reads the version from gradle.properties and sets it as bundle version
-version = "${findProperty('component.version')}"
-
-repositories {
-    // Use Maven Central for resolving dependencies.
-    mavenCentral()
-    // For resolving dependencies locally
-    mavenLocal()
+allprojects {
+    repositories {
+        if (buildType == "local") {
+            flatDir { dirs "${flatDirRepoPath}" }
+        } else {
+            maven {
+                url 'https://maven.elo.dev:8083/nexus/content/repositories/JavaLib'
+            }
+        }
+		mavenCentral()
+		mavenLocal()
+    }
 }
 
-dependencies {
-    // Dependencies for unit testing
-    // JUnit 5
-
-}
-
-test {
-    // Use JUnit Platform for unit tests.
-    useJUnitPlatform()
-}
-
-// Apply a specific Java toolchain to ease working on different environments.
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+subprojects {
+    apply plugin: 'java-library'
+    sourceCompatibility = '17'
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
     }
 }

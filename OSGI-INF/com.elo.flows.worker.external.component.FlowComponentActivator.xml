@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component name="flows.component.activator" activate="start" deactivate="stop" xmlns:scr="http://www.osgi.org/xmlns/scr/v1.4.0">
+    <implementation class="com.elo.flows.worker.external.component.FlowComponentActivator"/>
+</scr:component>
