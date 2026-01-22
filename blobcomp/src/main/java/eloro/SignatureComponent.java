@@ -36,14 +36,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component(preview = true, version = "v1", namespace = "eloro", name = "SignDataService", displayName = "Sign Data Service")
-public class SordTypeService {
+@Component(preview = true, version = "v1", namespace = "eloro", name = "SignatureComponent", displayName = "Signature Component")
+public class SignatureComponent {
 
     @Connection
     IXConnection ixConnection;
 
-    private static final Logger LOG = LoggerFactory.getLogger(SordTypeService.class);
-
+    private static final Logger LOG = LoggerFactory.getLogger(SignatureComponent.class);
     @Service(displayName = "Get Sord Type")
     @ConnectionRequired
     public SordTypeOutput getSordType(SordTypeInput input) {
