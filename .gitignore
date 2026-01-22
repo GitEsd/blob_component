@@ -1,0 +1,12 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore generated directories
+build
+bin
+
+# IDE-specific files
+.idea
+.vscode
+# Keep launch.json for debugging configurations
+!.vscode/launch.json
