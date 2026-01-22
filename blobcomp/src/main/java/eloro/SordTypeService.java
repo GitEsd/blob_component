@@ -298,4 +298,14 @@ public class SordTypeService {
         ixConnection.ix().checkinMap("FORMDATA", objId, objIdNum, new MapValue[] { mapValue }, LockC.NO);
         LOG.info("FORMDATA BLOB set for key '{}' on objId '{}' (MapValue+FileData)", key, objId);
     }
+    @Service(displayName = "Get session ticket")
+    @ConnectionRequired
+    public String getSessionTicket() {
+        try {
+            String ticket = ixConnection.getLoginResult().getClientInfo().getTicket();
+            return ticket;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }
