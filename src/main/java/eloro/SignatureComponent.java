@@ -36,13 +36,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component(preview = true, version = "v1", namespace = "eloro", name = "SignDataService", displayName = "Sign Data Service")
-public class SordTypeService {
+@Component(preview = true, version = "v1", namespace = "eloro", name = "SignatureComponent", displayName = "Signature Component")
+public class SignatureComponent {
 
     @Connection
     IXConnection ixConnection;
 
-    private static final Logger LOG = LoggerFactory.getLogger(SordTypeService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SignatureComponent.class);
 
     @Service(displayName = "Get Sord Type")
     @ConnectionRequired
@@ -50,19 +50,19 @@ public class SordTypeService {
         SordTypeOutput output = new SordTypeOutput();
         
         try {
-            String objId = input.getObjId();
+            String identifier = input.getObjId();
             
-            if (objId == null || objId.trim().isEmpty()) {
+            if (identifier == null || identifier.trim().isEmpty()) {
                 output.setSuccess(false);
                 output.setErrorMessage("Object ID is required");
                 return output;
             }
             
-            LOG.info("Getting SORD type for objId: {}", objId);
+            LOG.info("Getting SORD type for identifier: {}", identifier);
             
             // Checkout SORD pentru a obține informațiile
             EditInfo editInfo = ixConnection.ix().checkoutSord(
-                objId, 
+                identifier, 
                 EditInfoC.mbSord, 
                 LockC.NO
             );
@@ -71,7 +71,7 @@ public class SordTypeService {
             
             if (sord == null) {
                 output.setSuccess(false);
-                output.setErrorMessage("SORD not found for objId: " + objId);
+                output.setErrorMessage("SORD not found for identifier: " + identifier);
                 return output;
             }
             
@@ -128,9 +128,9 @@ public class SordTypeService {
     public GetSignDataOutput getSignData(GetSignDataInput input) {
         GetSignDataOutput output = new GetSignDataOutput();
         try {
-            String objId = input.getObjId();
+            String identifier = input.getObjId();
             String blobKey = input.getBlobKey();
-            if (objId == null || objId.trim().isEmpty()) {
+            if (identifier == null || identifier.trim().isEmpty()) {
                 output.setSuccess(false);
                 output.setErrorMessage("Object ID is required");
                 return output;
@@ -140,13 +140,13 @@ public class SordTypeService {
                 output.setErrorMessage("BLOB Key is required");
                 return output;
             }
-            String blobValue = getFormBlobValue(objId, blobKey);
+            String blobValue = getFormBlobValue(identifier, blobKey);
             if (blobValue != null) {
                 output.setBlobData(blobValue);
                 output.setBlobType("FORMBLOB");
                 output.setSuccess(true);
             } else {
-                List<String> availableKeys = getAllFormDataKeys(objId);
+                List<String> availableKeys = getAllFormDataKeys(identifier);
                 output.setAvailableKeys(availableKeys);
                 output.setBlobType("FORMBLOB");
                 output.setSuccess(true);
@@ -160,6 +160,14 @@ public class SordTypeService {
     }
 
     private String getFormBlobValue(String objId, String key) throws Exception {
+        // Parse objIdNum - if numeric use it, otherwise use 0 for GUID
+        int objIdNum = 0;
+        try {
+            objIdNum = Integer.parseInt(objId);
+        } catch (NumberFormatException e) {
+            LOG.debug("Identifier '{}' is a GUID, using 0 for objIdNum", objId);
+        }
+        
         MapData mapData = ixConnection.ix().checkoutMap("FORMDATA", objId, new String[] { key }, LockC.NO);
         if (mapData.getItems() != null && mapData.getItems().length > 0) {
             for (Object item : mapData.getItems()) {
@@ -199,6 +207,13 @@ public class SordTypeService {
     private List<String> getAllFormDataKeys(String objId) {
         List<String> keys = new ArrayList<>();
         try {
+            // Parse objIdNum - if numeric use it, otherwise use 0 for GUID
+            int objIdNum = 0;
+            try {
+                objIdNum = Integer.parseInt(objId);
+            } catch (NumberFormatException e) {
+                LOG.debug("Identifier '{}' is a GUID, using 0 for objIdNum", objId);
+            }
 
             Object[] allItems = ixConnection.ix().checkoutMap("FORMDATA", objId, new String[] { "*" }, LockC.NO).getItems();
             
@@ -238,12 +253,12 @@ public class SordTypeService {
         SetSignDataOutput output = new SetSignDataOutput();
         
         try {
-            String objId = input.getObjId();
+            String identifier = input.getObjId();
             String blobKey = input.getBlobKey();
             String blobType = input.getBlobType();
             String blobData = input.getBlobData();
             
-            if (objId == null || objId.trim().isEmpty()) {
+            if (identifier == null || identifier.trim().isEmpty()) {
                 output.setSuccess(false);
                 output.setErrorMessage("Object ID is required");
                 return output;
@@ -267,16 +282,16 @@ public class SordTypeService {
                 return output;
             }
             
-            LOG.info("Setting sign data for objId: {}, blobKey: {}, blobType: {}", objId, blobKey, blobType);
+            LOG.info("Setting sign data for identifier: {}, blobKey: {}, blobType: {}", identifier, blobKey, blobType);
             
             // Setează FORMBLOB folosind MapItems API
-            setFormBlobValue(objId, blobKey, blobData);
+            setFormBlobValue(identifier, blobKey, blobData);
             
-            output.setObjId(objId);
+            output.setObjId(identifier);
             output.setSuccess(true);
             output.setMessage("Sign data saved successfully for key: " + blobKey);
             
-            LOG.info("Sign data set successfully for objId: {}, key: {}", objId, blobKey);
+            LOG.info("Sign data set successfully for identifier: {}, key: {}", identifier, blobKey);
             
         } catch (Exception e) {
             LOG.error("Error setting sign data", e);
@@ -290,12 +305,21 @@ public class SordTypeService {
     /**
      * Setează valoarea FORMBLOB folosind MapValue+FileData (BLOB)
      */
-    private void setFormBlobValue(String objId, String key, String value) throws Exception {
+    private void setFormBlobValue(String identifier, String key, String value) throws Exception {
         // Creează MapValue cu FileData pentru BLOB
         FileData fileData = new FileData("text/plain", value.getBytes(StandardCharsets.UTF_8));
         MapValue mapValue = new MapValue(key, fileData);
-        int objIdNum = Integer.parseInt(objId);
-        ixConnection.ix().checkinMap("FORMDATA", objId, objIdNum, new MapValue[] { mapValue }, LockC.NO);
-        LOG.info("FORMDATA BLOB set for key '{}' on objId '{}' (MapValue+FileData)", key, objId);
+        
+        // Try to parse as numeric objId, if it fails it's a GUID
+        int objIdNum = 0;
+        try {
+            objIdNum = Integer.parseInt(identifier);
+        } catch (NumberFormatException e) {
+            // identifier is a GUID, use 0 as objIdNum
+            LOG.debug("Identifier '{}' is a GUID, using 0 for objIdNum", identifier);
+        }
+        
+        ixConnection.ix().checkinMap("FORMDATA", identifier, objIdNum, new MapValue[] { mapValue }, LockC.NO);
+        LOG.info("FORMDATA BLOB set for key '{}' on identifier '{}' (MapValue+FileData)", key, identifier);
     }
 }
