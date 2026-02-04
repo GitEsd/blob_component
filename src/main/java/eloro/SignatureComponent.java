@@ -48,55 +48,53 @@ public class SignatureComponent {
     @ConnectionRequired
     public SordTypeOutput getSordType(SordTypeInput input) {
         SordTypeOutput output = new SordTypeOutput();
-        
+
         try {
             String identifier = input.getObjId();
-            
+
             if (identifier == null || identifier.trim().isEmpty()) {
                 output.setSuccess(false);
                 output.setErrorMessage("Object ID is required");
                 return output;
             }
-            
+
             LOG.info("Getting SORD type for identifier: {}", identifier);
-            
+
             // Checkout SORD pentru a obține informațiile
             EditInfo editInfo = ixConnection.ix().checkoutSord(
-                identifier, 
-                EditInfoC.mbSord, 
-                LockC.NO
-            );
-            
+                    identifier,
+                    EditInfoC.mbSord,
+                    LockC.NO);
+
             Sord sord = editInfo.getSord();
-            
+
             if (sord == null) {
                 output.setSuccess(false);
                 output.setErrorMessage("SORD not found for identifier: " + identifier);
                 return output;
             }
-            
+
             output.setObjectName(sord.getName());
             output.setMaskId(sord.getMask());
             output.setMaskName(sord.getMaskName());
             output.setSordTypeId(sord.getType());
-            
+
             String sordTypeName = determineSordTypeName(sord.getType());
             output.setSordType(sordTypeName);
-            
+
             output.setSuccess(true);
-            
-            LOG.info("SORD type retrieved successfully: type={}, typeName={}, mask={}", 
-                sord.getType(), sordTypeName, sord.getMaskName());
-            
+
+            LOG.info("SORD type retrieved successfully: type={}, typeName={}, mask={}",
+                    sord.getType(), sordTypeName, sord.getMaskName());
+
         } catch (Exception e) {
             LOG.error("Error getting SORD type", e);
             output.setSuccess(false);
             output.setErrorMessage("Error: " + e.getMessage());
         }
-        
+
         return output;
     }
-    
 
     private String determineSordTypeName(int type) {
         if (type < SordC.LBT_DOCUMENT) {
@@ -167,7 +165,7 @@ public class SignatureComponent {
         } catch (NumberFormatException e) {
             LOG.debug("Identifier '{}' is a GUID, using 0 for objIdNum", objId);
         }
-        
+
         MapData mapData = ixConnection.ix().checkoutMap("FORMDATA", objId, new String[] { key }, LockC.NO);
         if (mapData.getItems() != null && mapData.getItems().length > 0) {
             for (Object item : mapData.getItems()) {
@@ -200,9 +198,10 @@ public class SignatureComponent {
         }
         return null;
     }
-    
+
     /**
-     * Returnează toate cheile FORMDATA disponibile pentru un objId cu info despre valori
+     * Returnează toate cheile FORMDATA disponibile pentru un objId cu info despre
+     * valori
      */
     private List<String> getAllFormDataKeys(String objId) {
         List<String> keys = new ArrayList<>();
@@ -215,8 +214,9 @@ public class SignatureComponent {
                 LOG.debug("Identifier '{}' is a GUID, using 0 for objIdNum", objId);
             }
 
-            Object[] allItems = ixConnection.ix().checkoutMap("FORMDATA", objId, new String[] { "*" }, LockC.NO).getItems();
-            
+            Object[] allItems = ixConnection.ix().checkoutMap("FORMDATA", objId, new String[] { "*" }, LockC.NO)
+                    .getItems();
+
             if (allItems != null) {
                 for (Object item : allItems) {
                     String keyInfo = "";
@@ -224,7 +224,10 @@ public class SignatureComponent {
                         KeyValue kv = (KeyValue) item;
                         if (kv.getKey() != null) {
                             String val = kv.getValue();
-                            keyInfo = kv.getKey() + " (KeyValue, value=" + (val != null ? "'" + val.substring(0, Math.min(20, val.length())) + "...'" : "null") + ")";
+                            keyInfo = kv.getKey() + " (KeyValue, value="
+                                    + (val != null ? "'" + val.substring(0, Math.min(20, val.length())) + "...'"
+                                            : "null")
+                                    + ")";
                             keys.add(keyInfo);
                         }
                     } else if (item instanceof MapValue) {
@@ -246,62 +249,61 @@ public class SignatureComponent {
         return keys;
     }
 
-   
     @Service(displayName = "Set Sign Data")
     @ConnectionRequired
     public SetSignDataOutput setSignData(SetSignDataInput input) {
         SetSignDataOutput output = new SetSignDataOutput();
-        
+
         try {
             String identifier = input.getObjId();
             String blobKey = input.getBlobKey();
             String blobType = input.getBlobType();
             String blobData = input.getBlobData();
-            
+
             if (identifier == null || identifier.trim().isEmpty()) {
                 output.setSuccess(false);
                 output.setErrorMessage("Object ID is required");
                 return output;
             }
-            
+
             if (blobKey == null || blobKey.trim().isEmpty()) {
                 output.setSuccess(false);
                 output.setErrorMessage("BLOB Key is required");
                 return output;
             }
-            
+
             if (blobType == null || blobType.trim().isEmpty()) {
                 output.setSuccess(false);
                 output.setErrorMessage("BLOB Type is required");
                 return output;
             }
-            
+
             if (blobData == null || blobData.trim().isEmpty()) {
                 output.setSuccess(false);
                 output.setErrorMessage("BLOB Data is required");
                 return output;
             }
-            
+
             LOG.info("Setting sign data for identifier: {}, blobKey: {}, blobType: {}", identifier, blobKey, blobType);
-            
+
             // Setează FORMBLOB folosind MapItems API
             setFormBlobValue(identifier, blobKey, blobData);
-            
+
             output.setObjId(identifier);
             output.setSuccess(true);
             output.setMessage("Sign data saved successfully for key: " + blobKey);
-            
+
             LOG.info("Sign data set successfully for identifier: {}, key: {}", identifier, blobKey);
-            
+
         } catch (Exception e) {
             LOG.error("Error setting sign data", e);
             output.setSuccess(false);
             output.setErrorMessage("Error: " + e.getMessage());
         }
-        
+
         return output;
     }
-    
+
     /**
      * Setează valoarea FORMBLOB folosind MapValue+FileData (BLOB)
      */
@@ -309,7 +311,7 @@ public class SignatureComponent {
         // Creează MapValue cu FileData pentru BLOB
         FileData fileData = new FileData("text/plain", value.getBytes(StandardCharsets.UTF_8));
         MapValue mapValue = new MapValue(key, fileData);
-        
+
         // Try to parse as numeric objId, if it fails it's a GUID
         int objIdNum = 0;
         try {
@@ -318,8 +320,19 @@ public class SignatureComponent {
             // identifier is a GUID, use 0 as objIdNum
             LOG.debug("Identifier '{}' is a GUID, using 0 for objIdNum", identifier);
         }
-        
+
         ixConnection.ix().checkinMap("FORMDATA", identifier, objIdNum, new MapValue[] { mapValue }, LockC.NO);
         LOG.info("FORMDATA BLOB set for key '{}' on identifier '{}' (MapValue+FileData)", key, identifier);
+    }
+
+    @Service(displayName = "Get session ticket")
+    @ConnectionRequired
+    public String getSessionTicket() {
+        try {
+            String ticket = ixConnection.getLoginResult().getClientInfo().getTicket();
+            return ticket;
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
