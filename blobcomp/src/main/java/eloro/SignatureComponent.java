@@ -161,12 +161,7 @@ public class SignatureComponent {
 
     private String getFormBlobValue(String objId, String key) throws Exception {
         // Parse objIdNum - if numeric use it, otherwise use 0 for GUID
-        int objIdNum = 0;
-        try {
-            objIdNum = Integer.parseInt(objId);
-        } catch (NumberFormatException e) {
-            LOG.debug("Identifier '{}' is a GUID, using 0 for objIdNum", objId);
-        }
+ 
         
         MapData mapData = ixConnection.ix().checkoutMap("FORMDATA", objId, new String[] { key }, LockC.NO);
         if (mapData.getItems() != null && mapData.getItems().length > 0) {
@@ -208,12 +203,7 @@ public class SignatureComponent {
         List<String> keys = new ArrayList<>();
         try {
             // Parse objIdNum - if numeric use it, otherwise use 0 for GUID
-            int objIdNum = 0;
-            try {
-                objIdNum = Integer.parseInt(objId);
-            } catch (NumberFormatException e) {
-                LOG.debug("Identifier '{}' is a GUID, using 0 for objIdNum", objId);
-            }
+ 
 
             Object[] allItems = ixConnection.ix().checkoutMap("FORMDATA", objId, new String[] { "*" }, LockC.NO).getItems();
             
@@ -311,13 +301,7 @@ public class SignatureComponent {
         MapValue mapValue = new MapValue(key, fileData);
         
         // Try to parse as numeric objId, if it fails it's a GUID
-        int objIdNum = 0;
-        try {
-            objIdNum = Integer.parseInt(identifier);
-        } catch (NumberFormatException e) {
-            // identifier is a GUID, use 0 as objIdNum
-            LOG.debug("Identifier '{}' is a GUID, using 0 for objIdNum", identifier);
-        }
+
         
         ixConnection.ix().checkinMap("FORMDATA", identifier, objIdNum, new MapValue[] { mapValue }, LockC.NO);
         LOG.info("FORMDATA BLOB set for key '{}' on identifier '{}' (MapValue+FileData)", key, identifier);
