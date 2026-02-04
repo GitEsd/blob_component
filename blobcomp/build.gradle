@@ -1,0 +1,10 @@
+plugins {
+    id 'com.elo.flows'
+}
+
+group = "com.elo.integration"
+description = "blobcomponent"
+version = "1.0.0"
+
+dependencies {}
+
