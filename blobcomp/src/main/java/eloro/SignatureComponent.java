@@ -322,4 +322,15 @@ public class SignatureComponent {
         ixConnection.ix().checkinMap("FORMDATA", identifier, objIdNum, new MapValue[] { mapValue }, LockC.NO);
         LOG.info("FORMDATA BLOB set for key '{}' on identifier '{}' (MapValue+FileData)", key, identifier);
     }
+
+    @Service(displayName = "Get session ticket")
+    @ConnectionRequired
+    public String getSessionTicket() {
+        try {
+            String ticket = ixConnection.getLoginResult().getClientInfo().getTicket();
+            return ticket;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }
