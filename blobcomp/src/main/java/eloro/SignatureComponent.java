@@ -160,7 +160,6 @@ public class SignatureComponent {
     }
 
     private String getFormBlobValue(String objId, String key) throws Exception {
-        // Parse objIdNum - if numeric use it, otherwise use 0 for GUID
  
         
         MapData mapData = ixConnection.ix().checkoutMap("FORMDATA", objId, new String[] { key }, LockC.NO);
@@ -202,7 +201,6 @@ public class SignatureComponent {
     private List<String> getAllFormDataKeys(String objId) {
         List<String> keys = new ArrayList<>();
         try {
-            // Parse objIdNum - if numeric use it, otherwise use 0 for GUID
  
 
             Object[] allItems = ixConnection.ix().checkoutMap("FORMDATA", objId, new String[] { "*" }, LockC.NO).getItems();
@@ -300,11 +298,24 @@ public class SignatureComponent {
         FileData fileData = new FileData("text/plain", value.getBytes(StandardCharsets.UTF_8));
         MapValue mapValue = new MapValue(key, fileData);
         
-        // Try to parse as numeric objId, if it fails it's a GUID
-
+        // Resolve identifier to numeric objId (works with both objId and GUID)
+        int objId = resolveToObjId(identifier);
         
-        ixConnection.ix().checkinMap("FORMDATA", identifier, objIdNum, new MapValue[] { mapValue }, LockC.NO);
-        LOG.info("FORMDATA BLOB set for key '{}' on identifier '{}' (MapValue+FileData)", key, identifier);
+        ixConnection.ix().checkinMap("FORMDATA", identifier, objId, new MapValue[] { mapValue }, LockC.NO);
+        LOG.info("FORMDATA BLOB set for key '{}' on identifier '{}' (objId={}, MapValue+FileData)", key, identifier, objId);
+    }
+    
+    /**
+     * Resolves an identifier (objId or GUID) to a numeric objId
+     */
+    private int resolveToObjId(String identifier) throws Exception {
+        // First, try to parse as a numeric objId
+        try {
+            return Integer.parseInt(identifier);
+        } catch (NumberFormatException e) {
+            EditInfo editInfo = ixConnection.ix().checkoutSord(identifier, EditInfoC.mbOnlyId, LockC.NO);
+            return editInfo.getSord().getId();
+        }
     }
 
     @Service(displayName = "Get session ticket")
